@@ -1,0 +1,12 @@
+C:\Users\Batu Berk\Desktop\Panteon\PGameServer\NetworkLibrary\bin\Test\net7.0\NetworkLibrary.deps.json
+C:\Users\Batu Berk\Desktop\Panteon\PGameServer\NetworkLibrary\bin\Test\net7.0\NetworkLibrary.dll
+C:\Users\Batu Berk\Desktop\Panteon\PGameServer\NetworkLibrary\bin\Test\net7.0\NetworkLibrary.pdb
+C:\Users\Batu Berk\Desktop\Panteon\PGameServer\NetworkLibrary\obj\Test\net7.0\NetworkLibrary.csproj.AssemblyReference.cache
+C:\Users\Batu Berk\Desktop\Panteon\PGameServer\NetworkLibrary\obj\Test\net7.0\NetworkLibrary.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Batu Berk\Desktop\Panteon\PGameServer\NetworkLibrary\obj\Test\net7.0\NetworkLibrary.AssemblyInfoInputs.cache
+C:\Users\Batu Berk\Desktop\Panteon\PGameServer\NetworkLibrary\obj\Test\net7.0\NetworkLibrary.AssemblyInfo.cs
+C:\Users\Batu Berk\Desktop\Panteon\PGameServer\NetworkLibrary\obj\Test\net7.0\NetworkLibrary.csproj.CoreCompileInputs.cache
+C:\Users\Batu Berk\Desktop\Panteon\PGameServer\NetworkLibrary\obj\Test\net7.0\NetworkLibrary.dll
+C:\Users\Batu Berk\Desktop\Panteon\PGameServer\NetworkLibrary\obj\Test\net7.0\refint\NetworkLibrary.dll
+C:\Users\Batu Berk\Desktop\Panteon\PGameServer\NetworkLibrary\obj\Test\net7.0\NetworkLibrary.pdb
+C:\Users\Batu Berk\Desktop\Panteon\PGameServer\NetworkLibrary\obj\Test\net7.0\ref\NetworkLibrary.dll
