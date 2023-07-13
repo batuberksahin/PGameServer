@@ -49,10 +49,11 @@ public abstract class BehaviourBase<TRequest, TResponse> : IBehaviour
     private async Task SendResponseAsync(TcpClient client, TResponse response)
     {
         byte[] responseBytes = SerializeResponse(response);
-            
+        
         NetworkStream stream = client.GetStream();
         await stream.WriteAsync(responseBytes, 0, responseBytes.Length);
-    }    
+    }
+    
     private TRequest DeserializeRequest(string payload)
     {
         return JsonConvert.DeserializeObject<TRequest>(payload, _jsonSerializerSettings);
