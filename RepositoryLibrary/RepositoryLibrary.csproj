@@ -7,10 +7,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Folder Include="Models" />
-    </ItemGroup>
-
-    <ItemGroup>
       <PackageReference Include="MongoDB.Bson" Version="2.20.0" />
       <PackageReference Include="MongoDB.Driver" Version="2.20.0" />
     </ItemGroup>

@@ -45,11 +45,15 @@ public class PingJob : JobBase
     {
         try
         {
+            // Create tcp connection
             if (!_tcpClient.Connected)
                 await _tcpClient.ConnectAsync(_ipAddress, _port);
 
+            // Send open request if not started
+            // Send ping request if started
             if (_isStarted)
             {
+                // Create ping request model
                 var pingRequest = new PingRequest
                 {
                     ServerId = GameServer.ServerId,
@@ -57,12 +61,15 @@ public class PingJob : JobBase
                     Timestamp = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds()
                 };
                 
+                // Send ping request
                 await Messenger.SendResponseAsync(_tcpClient, "server_ping", pingRequest);
 
+                // Handle response
                 Task.Run((() => HandleResponseAsync(_tcpClient)));
             }
             else
             {
+                // Create open request model
                 var openRequest = new OpenRequest
                 {
                     ServerId = GameServer.ServerId,
@@ -71,8 +78,10 @@ public class PingJob : JobBase
                     Timestamp = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds()
                 };
 
+                // Send open request
                 await Messenger.SendResponseAsync(_tcpClient, "server_open", openRequest);
                 
+                // Handle response
                 Task.Run((() => HandleResponseAsync(_tcpClient)));
 
                 _isStarted = true;
@@ -95,8 +104,6 @@ public class PingJob : JobBase
     private async Task HandleResponseAsync(TcpClient tcpClient)
     {
         var response = await ReadResponseAsync(tcpClient);
-
-        Console.WriteLine(response);
     }
 
     private async Task<string> ReadResponseAsync(TcpClient tcpClient)

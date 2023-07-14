@@ -20,6 +20,7 @@ public static class GameServer
 
         // Jobs
         TcpClient pingTcpClient = new TcpClient();
+        
         JobScheduler jobScheduler = new JobScheduler(TimeSpan.FromSeconds(0.3));
         jobScheduler.RegisterTask(new PingJob(pingTcpClient, "127.0.0.1", MasterServerPort));
         
