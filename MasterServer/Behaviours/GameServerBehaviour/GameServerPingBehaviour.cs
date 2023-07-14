@@ -16,12 +16,10 @@ public class GameServerPingResponse
     public string? Message;
 }
 
-public class PingBehaviour : BehaviourBase<GameServerPingRequest, GameServerPingResponse>
+public class GameServerPingBehaviour : BehaviourBase<GameServerPingRequest, GameServerPingResponse>
 {
     public override Task<GameServerPingResponse> ExecuteBehaviourAsync(TcpClient client, GameServerPingRequest request)
     {
-        // TODO: Add server port to server list
-        
         ManagerLocator.GameServerPingManager.PingGameServer(request.ServerId);
         
         return Task.FromResult(new GameServerPingResponse{ Success = true, Message = "Ping received"});

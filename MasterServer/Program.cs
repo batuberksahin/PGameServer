@@ -14,9 +14,12 @@ public static class MasterServer
         
         // Player Behaviours
         server.RegisterBehaviour("player_connect", new PlayerConnectBehaviour());
+        server.RegisterBehaviour("player_ping", new PlayerPingBehaviour());
+        server.RegisterBehaviour("player_play_game", new PlayerPlayGameBehaviour());
         
         // Game Server Behaviours
-        server.RegisterBehaviour("server_ping", new PingBehaviour());
+        server.RegisterBehaviour("server_ping", new GameServerPingBehaviour());
+        server.RegisterBehaviour("server_open", new GameServerOpenBehaviour());
 
         // Jobs
         JobScheduler jobScheduler = new JobScheduler(TimeSpan.FromSeconds(2.0));

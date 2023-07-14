@@ -1,6 +1,9 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using NetworkLibrary.Behaviours;
+using NetworkLibrary.Middlewares;
+using RepositoryLibrary;
+using RepositoryLibrary.Models;
 
 namespace MasterServer.Behaviours.PlayerBehaviours;
 
@@ -19,20 +22,45 @@ public class ConnectResponse
 }
 
 public class PlayerConnectBehaviour : BehaviourBase<ConnectRequest, ConnectResponse>
-
 {
-    public override Task<ConnectResponse> ExecuteBehaviourAsync(TcpClient client, ConnectRequest request)
-    {
-        Console.WriteLine("[$] Player " + request.Username + " connected");
+    private readonly IRepository<Player> _playerRepository;
 
-        // TODO: Find or create player guid and return it to player
+    public PlayerConnectBehaviour()
+    {
+        _playerRepository = new PlayerRepository("Players");
+    }
+
+    public override async Task<ConnectResponse> ExecuteBehaviourAsync(TcpClient client, ConnectRequest request)
+    {
+        Player player = await _playerRepository.GetByUsernameAsync(request.Username ?? string.Empty);
+        Guid playerId;
         
+        if (player.Id == Guid.Empty)
+        {
+            playerId = Guid.NewGuid();
+            
+            player = new Player
+            {
+                Id = playerId,
+                Username = request.Username,
+                Score = 0,
+                ActiveRoom = Guid.Empty
+            };
+
+            await _playerRepository.SaveAsync(player);
+        }
+
+        playerId = player.Id;
+        
+        Console.WriteLine($"[$] Player \"{request.Username}\" connected. {playerId}");
+
         var response = new ConnectResponse
         {
             Success = true,
-            Message = "Connected successfully"
+            Message = "Connected successfully",
+            PlayerId = playerId
         };
 
-        return Task.FromResult(response);
+        return response;
     }
 }

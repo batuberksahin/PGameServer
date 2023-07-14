@@ -6,6 +6,6 @@ public class GameServer
     public int Port;
     
     public List<Room>? Rooms;
-    
+
     public DateTime CreatedAt = DateTime.Now;
 }

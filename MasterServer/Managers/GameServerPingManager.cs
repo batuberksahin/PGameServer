@@ -1,4 +1,6 @@
-﻿namespace MasterServer.Managers;
+﻿using RepositoryLibrary.Models;
+
+namespace MasterServer.Managers;
 
 public class GameServerPingManager
 {
@@ -26,7 +28,12 @@ public class GameServerPingManager
         _gameServerPings.Remove(id);
     }
     
-    public async Task<bool> IsGameServerActive(Guid id)
+    public Guid GetActiveGameServerGuid()
+    {
+        return _gameServerPings.FirstOrDefault(x => IsGameServerActive(x.Key).Result).Key;
+    }
+
+    private async Task<bool> IsGameServerActive(Guid id)
     {
         return await Task.Run(() =>
         {

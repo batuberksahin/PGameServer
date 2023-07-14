@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using MongoDB.Driver;
+using RepositoryLibrary.Models;
 
 namespace RepositoryLibrary;
 
@@ -24,6 +25,18 @@ public abstract class RepositoryBase<T> : IRepository<T>
     public virtual async Task<T> GetByIdAsync(string id)
     {
         var filter = Builders<T>.Filter.Eq("_id", id);
+        return await Collection.Find(filter).FirstOrDefaultAsync();
+    }
+    
+    public virtual async Task<T> GetByGuidAsync(Guid id)
+    {
+        var filter = Builders<T>.Filter.Eq("_id", id);
+        return await Collection.Find(filter).FirstOrDefaultAsync();
+    }
+    
+    public virtual async Task<T> GetByUsernameAsync(string username)
+    {
+        var filter = Builders<T>.Filter.Eq("Username", username);
         return await Collection.Find(filter).FirstOrDefaultAsync();
     }
 
