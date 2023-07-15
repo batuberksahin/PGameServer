@@ -79,10 +79,16 @@ public class TcpServer : ITcpServer
                 
                 _ = Task.Run(() => _behaviourEngine.ParseRequestAsync(client, data));
             }
-        } catch (Exception e)
+        }
+        catch (IOException ex) when (ex.InnerException is SocketException socketException && socketException.SocketErrorCode == SocketError.ConnectionReset)
+        {
+            Console.WriteLine("Connection closed by remote host.");
+        }
+        catch (Exception e)
         {
             Console.Error.WriteLine(e);
             throw;
+            
         }
     }
 }

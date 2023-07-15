@@ -13,4 +13,9 @@ public class PlayerRepository : RepositoryBase<Player>
     {
         return entity.Id.ToString();
     }
+    
+    protected override Guid GetGuid(Player entity)
+    {
+        return entity.Id;
+    }
 }

@@ -12,4 +12,9 @@ public class GameServerRepository : RepositoryBase<GameServer>
     {
         return entity.Id.ToString();
     }
+
+    protected override Guid GetGuid(GameServer entity)
+    {
+        return entity.Id;
+    }
 }

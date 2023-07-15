@@ -47,7 +47,7 @@ public abstract class RepositoryBase<T> : IRepository<T>
 
     public virtual async Task UpdateAsync(T entity)
     {
-        var filter = Builders<T>.Filter.Eq("_id", GetId(entity));
+        var filter = Builders<T>.Filter.Eq("_id", GetGuid(entity));
         await Collection.ReplaceOneAsync(filter, entity);
     }
 
@@ -58,4 +58,5 @@ public abstract class RepositoryBase<T> : IRepository<T>
     }
 
     protected abstract string GetId(T entity);
+    protected abstract Guid GetGuid(T entity);
 }
