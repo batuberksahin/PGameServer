@@ -32,35 +32,45 @@ public class GameServerOpenBehaviour : BehaviourBase<GameServerOpenRequest, Game
     public override async Task<GameServerOpenResponse> ExecuteBehaviourAsync(TcpClient client, GameServerOpenRequest request)
     {
         // TODO: burda bug olabilir gameServer databaseden çektiğim için kayıt etmeyebilir
-        
-        GameServer gameServer = await _gameServerRepository.GetByGuidAsync(request.ServerId);
+        try
+        {
+            GameServer gameServer = await _gameServerRepository.GetByGuidAsync(request.ServerId);
 
-        GameServerOpenResponse gameServerOpenResponse = new()
-        {
-            Success = true,
-            Message = ""
-        };
-        
-        if (gameServer.Id == Guid.Empty)
-        {
-            gameServer = new GameServer
+            GameServerOpenResponse gameServerOpenResponse = new()
             {
-                Id = request.ServerId,
-                Port = request.ServerPort,
-                Rooms = new List<Room>()
+                Success = true,
+                Message = ""
             };
 
-            await _gameServerRepository.SaveAsync(gameServer);
-            
-            gameServerOpenResponse.Message = "Game server added to database";
-        }
-        
-        gameServerOpenResponse.Message = "Game server already exists in database";
-        
-        ManagerLocator.MatchmakingManager.AddGameServer(gameServer, client);
-        
-        Console.WriteLine($"[#] Game Server \"{request.ServerId}\" connected. {request.ServerIpAddress}:{request.ServerPort}");
+            if (gameServer == null)
+            {
+                gameServer = new GameServer
+                {
+                    Id = request.ServerId,
+                    Port = request.ServerPort,
+                    Rooms = new List<Room>()
+                };
 
-        return gameServerOpenResponse;
+                await _gameServerRepository.SaveAsync(gameServer);
+
+                gameServerOpenResponse.Message = "Game server added to database";
+            }
+            else
+            {
+                gameServerOpenResponse.Message = "Game server already exists in database";
+            }
+
+            ManagerLocator.MatchmakingManager.AddGameServer(gameServer, client);
+
+            Console.WriteLine(
+                $"[#] Game Server \"{request.ServerId}\" connected. {request.ServerIpAddress}:{request.ServerPort}");
+
+            return gameServerOpenResponse;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
     }
 }

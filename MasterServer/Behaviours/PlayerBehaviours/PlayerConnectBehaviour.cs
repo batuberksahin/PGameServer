@@ -32,35 +32,43 @@ public class PlayerConnectBehaviour : BehaviourBase<ConnectRequest, ConnectRespo
 
     public override async Task<ConnectResponse> ExecuteBehaviourAsync(TcpClient client, ConnectRequest request)
     {
-        Player player = await _playerRepository.GetByUsernameAsync(request.Username ?? string.Empty);
-        Guid playerId;
-        
-        if (player.Id == Guid.Empty)
+        try
         {
-            playerId = Guid.NewGuid();
-            
-            player = new Player
+            Player player = await _playerRepository.GetByUsernameAsync(request.Username ?? string.Empty);
+            Guid playerId;
+
+            if (player == null)
             {
-                Id = playerId,
-                Username = request.Username,
-                Score = 0,
-                ActiveRoom = Guid.Empty
+                playerId = Guid.NewGuid();
+
+                player = new Player
+                {
+                    Id = playerId,
+                    Username = request.Username,
+                    Score = 0,
+                    ActiveRoom = Guid.Empty
+                };
+
+                await _playerRepository.SaveAsync(player);
+            }
+
+            playerId = player.Id;
+
+            Console.WriteLine($"[$] Player \"{request.Username}\" connected. {playerId}");
+
+            var response = new ConnectResponse
+            {
+                Success = true,
+                Message = "Connected successfully",
+                PlayerId = playerId
             };
 
-            await _playerRepository.SaveAsync(player);
+            return response;
         }
-
-        playerId = player.Id;
-        
-        Console.WriteLine($"[$] Player \"{request.Username}\" connected. {playerId}");
-
-        var response = new ConnectResponse
+        catch (Exception e)
         {
-            Success = true,
-            Message = "Connected successfully",
-            PlayerId = playerId
-        };
-
-        return response;
+            Console.Error.WriteLine(e);
+            throw;
+        }
     }
 }

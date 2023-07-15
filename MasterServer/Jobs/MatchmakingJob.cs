@@ -1,8 +1,10 @@
-﻿using System.Net.Sockets;
+﻿using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using MasterServer.Managers;
 using NetworkLibrary;
 using NetworkLibrary.Jobs;
+using Newtonsoft.Json;
 using RepositoryLibrary.Models;
 
 namespace MasterServer.Jobs;
@@ -13,53 +15,71 @@ public class MatchmakingJob : JobBase
     
     public override async Task RunAsync()
     {
-        var playersCount = ManagerLocator.MatchmakingManager.GetPlayersCountInQueue();
-        
-        if (playersCount < MaxPlayers) return;
-        
-        var players = ManagerLocator.MatchmakingManager.GetPlayersFromQueue(MaxPlayers);
-        var availableGameServerGuid = ManagerLocator.GameServerPingManager.GetActiveGameServerGuid();
-        
-        if (availableGameServerGuid == Guid.Empty)
-            return;
-
-        // TODO: remove players from queue after room created
-        var gameServerTcpClient = ManagerLocator.MatchmakingManager.GetGameServerTcpClient(availableGameServerGuid);
-        
-        await Messenger.SendResponseAsync(gameServerTcpClient, "server_new_room", new
+        try
         {
-            Players = players.Keys.ToList()
-        });
+            var playersCount = ManagerLocator.MatchmakingManager.GetPlayersCountInQueue();
 
-        var roomId = await HandleResponseAsync(gameServerTcpClient);
+            if (playersCount < MaxPlayers) return;
 
-        var gameServerInfo = ManagerLocator.MatchmakingManager.GetGameServerByGuid(availableGameServerGuid);
-        
-        foreach (KeyValuePair<Player,TcpClient> playerContainer in players)
-        {
-            await Messenger.SendResponseAsync(playerContainer.Value, "room_info", new
+            var players = ManagerLocator.MatchmakingManager.GetPlayersFromQueue(MaxPlayers);
+            var availableGameServerGuid = ManagerLocator.GameServerPingManager.GetActiveGameServerGuid();
+            
+            if (availableGameServerGuid == Guid.Empty)
+                return;
+
+            GameServer gameServer = ManagerLocator.MatchmakingManager.GetGameServerByGuid(availableGameServerGuid);
+            
+            TcpClient gameServerTcpClient = new TcpClient();
+            await gameServerTcpClient.ConnectAsync(IPAddress.Parse("127.0.0.1"), gameServer.Port);
+            
+            //var gameServerTcpClient = ManagerLocator.MatchmakingManager.GetGameServerTcpClient(availableGameServerGuid);
+            await Messenger.SendResponseAsync(gameServerTcpClient, "server_new_room", new
             {
-                GameServerAddress = "127.0.0.1",
-                GameServerPort = gameServerInfo.Port,
-                RoomId = 
+                Players = players.Keys.ToList()
             });
+
+            var roomId = await HandleResponseAsync(gameServerTcpClient);
+
+            var gameServerInfo = ManagerLocator.MatchmakingManager.GetGameServerByGuid(availableGameServerGuid);
+
+            foreach (KeyValuePair<Player, TcpClient> playerContainer in players)
+            {
+                await Messenger.SendResponseAsync(playerContainer.Value, "room_info", new
+                {
+                    GameServerAddress = "127.0.0.1",
+                    GameServerPort = gameServerInfo.Port,
+                    RoomId = roomId
+                });
+
+                ManagerLocator.MatchmakingManager.RemovePlayer(playerContainer.Key);
+            }
+
+            Console.WriteLine($"[#] Sent game server address to {players.Count} players");
         }
-        
-        Console.WriteLine($"[#] Sent game server address to {players.Count} players");
+        catch (Exception e)
+        {
+            Console.Error.WriteLine(e);
+            throw;
+        }
     }
     
     private async Task<Guid> HandleResponseAsync(TcpClient tcpClient)
     {
         var response = await ReadResponseAsync(tcpClient);
-        // TODO: handle room id from json
-        //JsonConvert.DeserializeObject<TRequest>(payload, _jsonSerializerSettings);
-        /*string[] behaviourParts = behaviourString.Split(new[] { ':' }, 2);
-        if (behaviourParts.Length < 1)
-            return;
+        
+        try
+        {
+            var roomInfo = JsonConvert.DeserializeObject<dynamic>(response);
 
-        string behaviourName = behaviourParts[0];
-        string payload = behaviourParts[1];*/
+            if (roomInfo != null) return roomInfo.RoomId;
 
+            return Guid.Empty;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            return Guid.Empty;
+        }
     }
 
     private async Task<string> ReadResponseAsync(TcpClient tcpClient)

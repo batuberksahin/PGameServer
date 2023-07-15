@@ -1,4 +1,7 @@
-﻿using System.Net.Sockets;
+﻿using System.Net;
+using System.Net.Sockets;
+using GameServer.Behaviours.MasterServerBehaviours;
+using GameServer.Behaviours.PlayerBehaviours;
 using GameServer.Jobs;
 using NetworkLibrary;
 using NetworkLibrary.Jobs;
@@ -16,8 +19,10 @@ public static class GameServer
     {
         ITcpServer server = new TcpServer(Port);
         
-        Task.Run(() => server.StartAsync());
-
+        server.RegisterBehaviour("server_new_room", new NewRoomBehaviour());
+        
+        server.RegisterBehaviour("player_connect", new PlayerConnectBehaviour());
+        
         // Jobs
         TcpClient pingTcpClient = new TcpClient();
         
@@ -26,9 +31,32 @@ public static class GameServer
         
         jobScheduler.Start();
         
+        Task.Run(() => server.StartAsync());
+
+        TcpClient masterServerTcpClient = new TcpClient();
+        Task.Run(() => SendOpenRequestToMasterServer(masterServerTcpClient));
+
         Console.WriteLine($"Game server ({ServerId}) started. Press Enter to stop the server...");
         Console.ReadLine();
         
         server.StopImmediately();
+    }
+
+    private static async Task SendOpenRequestToMasterServer(TcpClient masterServerTcpClient)
+    {
+        if (!masterServerTcpClient.Connected)
+            await masterServerTcpClient.ConnectAsync("127.0.0.1", MasterServerPort);
+
+        // Create open request model
+        var openRequest = new OpenRequest
+        {
+            ServerId = ServerId,
+            ServerIpAddress = Dns.Resolve("localhost").AddressList[1].ToString(),
+            ServerPort = Port,
+            Timestamp = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds()
+        };
+
+        // Send open request
+        await Messenger.SendResponseAsync(masterServerTcpClient, "server_open", openRequest);
     }
 }

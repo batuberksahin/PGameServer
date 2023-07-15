@@ -1,5 +1,6 @@
 ﻿using System.Net.Sockets;
 using NetworkLibrary.Behaviours;
+using RepositoryLibrary;
 using RepositoryLibrary.Models;
 
 namespace GameServer.Behaviours.MasterServerBehaviours;
@@ -19,8 +20,45 @@ public class NewRoomResponse
 
 public class NewRoomBehaviour : BehaviourBase<NewRoomRequest, NewRoomResponse>
 {
-    public override Task<NewRoomResponse> ExecuteBehaviourAsync(TcpClient client, NewRoomRequest request)
+    private readonly IRepository<RepositoryLibrary.Models.GameServer> _gameServerRepository;
+
+    public NewRoomBehaviour()
     {
-        throw new NotImplementedException();
+        _gameServerRepository = new GameServerRepository("GameServers");
+    }
+    
+    public override async Task<NewRoomResponse> ExecuteBehaviourAsync(TcpClient client, NewRoomRequest request)
+    {
+        try
+        {
+            Console.WriteLine($"[$] New room created. {request.Players?.Count}");
+            
+            var gameServer = await _gameServerRepository.GetByGuidAsync(GameServer.ServerId);
+
+            var room = new Room
+            {
+                Id = Guid.NewGuid(),
+                ActivePlayers = request.Players,
+                Capacity = request.Players.Count
+            };
+
+            if (gameServer != null) gameServer.Rooms.Add(room);
+            else gameServer.Rooms = new List<Room> { room };
+
+            await _gameServerRepository.UpdateAsync(gameServer);
+            
+            return new NewRoomResponse
+            {
+                Success = true,
+                Message = "Room created successfully",
+
+                RoomId = room.Id
+            };
+        }
+        catch (Exception e)
+        {
+            Console.Error.WriteLine(e);
+            throw;
+        }
     }
 }

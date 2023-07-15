@@ -51,7 +51,7 @@ public abstract class BehaviourBase<TRequest, TResponse> : IBehaviour
         byte[] responseBytes = SerializeResponse(response);
         
         NetworkStream stream = client.GetStream();
-        await stream.WriteAsync(responseBytes, 0, responseBytes.Length);
+        await stream.WriteAsync(responseBytes, 0, responseBytes.Length); 
     }
     
     private TRequest DeserializeRequest(string payload)

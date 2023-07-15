@@ -28,16 +28,26 @@ public class PlayerPlayGameBehaviour : BehaviourBase<PlayerPlayGameRequest, Play
 
     public override async Task<PlayerPlayGameResponse> ExecuteBehaviourAsync(TcpClient client, PlayerPlayGameRequest request)
     {
-        Player player = await _playerRepository.GetByGuidAsync(request.PlayerId);
-        
-        ManagerLocator.MatchmakingManager.AddPlayer(player, client);
-        
-        var response = new PlayerPlayGameResponse
+        try
         {
-            Success = true,
-            Message = "Player added to matchmaking queue",
-        };
+            Player player = await _playerRepository.GetByGuidAsync(request.PlayerId);
 
-        return response;
+            ManagerLocator.MatchmakingManager.AddPlayer(player, client);
+
+            var response = new PlayerPlayGameResponse
+            {
+                Success = true,
+                Message = "Player added to matchmaking queue",
+            };
+            
+            Console.WriteLine($"[$] Player \"{player.Username}\" added to matchmaking queue. {player.Id}");
+
+            return response;
+        }
+        catch (Exception e)
+        {
+            Console.Error.WriteLine(e);
+            throw;
+        }
     }
 }

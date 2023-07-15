@@ -4,6 +4,7 @@ using System.Net.Sockets;
 using System.Text;
 using NetworkLibrary;
 using NetworkLibrary.Jobs;
+using Newtonsoft.Json;
 
 namespace GameServer.Jobs;
 
@@ -28,8 +29,6 @@ public class PingJob : JobBase
     private readonly int _port;
     
     private readonly TcpClient _tcpClient;
-
-    private bool _isStarted;
     
     public PingJob(TcpClient tcpClient, string ipAddress, int port)
     {
@@ -37,8 +36,6 @@ public class PingJob : JobBase
         
         _ipAddress = ipAddress;
         _port = port;
-        
-        _isStarted = false;
     }
     
     public override async Task RunAsync()
@@ -48,44 +45,19 @@ public class PingJob : JobBase
             // Create tcp connection
             if (!_tcpClient.Connected)
                 await _tcpClient.ConnectAsync(_ipAddress, _port);
-
-            // Send open request if not started
-            // Send ping request if started
-            if (_isStarted)
+            
+            var pingRequest = new PingRequest
             {
-                // Create ping request model
-                var pingRequest = new PingRequest
-                {
-                    ServerId = GameServer.ServerId,
-                    ServerPort = GameServer.Port,
-                    Timestamp = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds()
-                };
-                
-                // Send ping request
-                await Messenger.SendResponseAsync(_tcpClient, "server_ping", pingRequest);
+                ServerId = GameServer.ServerId,
+                ServerPort = GameServer.Port,
+                Timestamp = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds()
+            };
+            
+            // Send ping request
+            await Messenger.SendResponseAsync(_tcpClient, "server_ping", pingRequest);
 
-                // Handle response
-                Task.Run((() => HandleResponseAsync(_tcpClient)));
-            }
-            else
-            {
-                // Create open request model
-                var openRequest = new OpenRequest
-                {
-                    ServerId = GameServer.ServerId,
-                    ServerIpAddress = Dns.Resolve("localhost").AddressList[1].ToString(),
-                    ServerPort = GameServer.Port,
-                    Timestamp = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds()
-                };
-
-                // Send open request
-                await Messenger.SendResponseAsync(_tcpClient, "server_open", openRequest);
-                
-                // Handle response
-                Task.Run((() => HandleResponseAsync(_tcpClient)));
-
-                _isStarted = true;
-            }
+            // Handle response
+            Task.Run((() => HandleResponseAsync(_tcpClient)));
         }
         catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
         {

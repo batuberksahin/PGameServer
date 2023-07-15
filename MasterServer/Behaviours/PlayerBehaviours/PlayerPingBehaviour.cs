@@ -18,10 +18,10 @@ public class PlayerPingResponse
 
 public class PlayerPingBehaviour : BehaviourBase<PlayerPingRequest, PlayerPingResponse>
 {
-    public override Task<PlayerPingResponse> ExecuteBehaviourAsync(TcpClient client, PlayerPingRequest request)
+    public override async Task<PlayerPingResponse> ExecuteBehaviourAsync(TcpClient client, PlayerPingRequest request)
     {
         ManagerLocator.PlayerPingManager.PingPlayer(request.PlayerId);
 
-        return Task.FromResult(new PlayerPingResponse{ Success = true, Message = "Ping received"});
+        return await Task.FromResult(new PlayerPingResponse{ Success = true, Message = "Ping received"});
     }
 }
