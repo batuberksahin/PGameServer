@@ -22,6 +22,9 @@ public static class GameServer
         server.RegisterBehaviour("server_new_room", new NewRoomBehaviour());
         
         server.RegisterBehaviour("player_connect", new PlayerConnectBehaviour());
+        server.RegisterBehaviour("player_ready", new PlayerReadyBehaviour());
+        server.RegisterBehaviour("player_position", new PlayerUpdatePositionBehaviour());
+        server.RegisterBehaviour("player_finish", new PlayerFinishBehaviour());
         
         // Jobs
         TcpClient pingTcpClient = new TcpClient();

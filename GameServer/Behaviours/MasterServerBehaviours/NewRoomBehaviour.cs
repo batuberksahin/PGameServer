@@ -1,4 +1,5 @@
 ﻿using System.Net.Sockets;
+using GameServer.Managers;
 using NetworkLibrary.Behaviours;
 using RepositoryLibrary;
 using RepositoryLibrary.Models;
@@ -47,10 +48,13 @@ public class NewRoomBehaviour : BehaviourBase<NewRoomRequest, NewRoomResponse>
 
             await _gameServerRepository.UpdateAsync(gameServer);
             
+            ManagerLocator.RoomManager.AddRoom(room);
+            ManagerLocator.RoomManager.StartRoom(room);
+            
             return new NewRoomResponse
             {
                 Success = true,
-                Message = "Room created successfully",
+                Message = "Room created and started successfully",
 
                 RoomId = room.Id
             };

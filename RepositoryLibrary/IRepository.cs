@@ -1,4 +1,6 @@
-﻿namespace RepositoryLibrary;
+﻿using RepositoryLibrary.Models;
+
+namespace RepositoryLibrary;
 
 public interface IRepository<T>
 {

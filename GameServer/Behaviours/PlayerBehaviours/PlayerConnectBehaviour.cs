@@ -1,5 +1,7 @@
 ﻿using System.Net.Sockets;
+using GameServer.Managers;
 using NetworkLibrary.Behaviours;
+using RepositoryLibrary;
 using RepositoryLibrary.Models;
 
 namespace GameServer.Behaviours.PlayerBehaviours;
@@ -15,15 +17,39 @@ public class ConnectResponse
 {
     public bool? Success;
     public string? Message;
-
-    public Guid? RoomId;
-    public List<Player>? Players;
 }
 
 public class PlayerConnectBehaviour : BehaviourBase<ConnectRequest, ConnectResponse>
 {
-    public override Task<ConnectResponse> ExecuteBehaviourAsync(TcpClient client, ConnectRequest request)
+    private readonly IRepository<Player> _playerRepository;
+
+    public PlayerConnectBehaviour()
     {
-        throw new NotImplementedException();
+        _playerRepository = new PlayerRepository("Players");
+    }
+    
+    public override async Task<ConnectResponse> ExecuteBehaviourAsync(TcpClient client, ConnectRequest request)
+    {
+        try
+        {
+            Player player = await _playerRepository.GetByGuidAsync(request.PlayerId);
+
+            player.ActiveRoom = request.RoomId;
+
+            await _playerRepository.UpdateAsync(player);
+
+            ManagerLocator.RoomManager.AddPlayer(player, client);
+
+            return new ConnectResponse
+            {
+                Success = true,
+                Message = "Connection established"
+            };
+        }
+        catch (Exception e)
+        {
+            Console.Error.WriteLine(e);
+            throw;
+        }
     }
 }
