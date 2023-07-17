@@ -8,46 +8,47 @@ namespace MasterServer.Behaviours.PlayerBehaviours;
 
 public class PlayerPlayGameRequest
 {
-    public Guid PlayerId;
+  public Guid PlayerId;
 }
 
 public class PlayerPlayGameResponse
 {
-    public bool? Success;
-    public string? Message;
+  public bool?   Success;
+  public string? Message;
 }
 
 public class PlayerPlayGameBehaviour : BehaviourBase<PlayerPlayGameRequest, PlayerPlayGameResponse>
 {
-    private readonly IRepository<Player> _playerRepository;
+  private readonly IRepository<Player> _playerRepository;
 
-    public PlayerPlayGameBehaviour()
+  public PlayerPlayGameBehaviour()
+  {
+    _playerRepository = new PlayerRepository("Players");
+  }
+
+  public override async Task<PlayerPlayGameResponse> ExecuteBehaviourAsync(
+    TcpClient client, PlayerPlayGameRequest request)
+  {
+    try
     {
-        _playerRepository = new PlayerRepository("Players");
-    }
+      var player = await _playerRepository.GetByGuidAsync(request.PlayerId);
 
-    public override async Task<PlayerPlayGameResponse> ExecuteBehaviourAsync(TcpClient client, PlayerPlayGameRequest request)
+      ManagerLocator.MatchmakingManager.AddPlayer(player, client);
+
+      var response = new PlayerPlayGameResponse
+                     {
+                       Success = true,
+                       Message = "Player added to matchmaking queue"
+                     };
+
+      Console.WriteLine($"[$] Player \"{player.Username}\" added to matchmaking queue. {player.Id}");
+
+      return response;
+    }
+    catch (Exception e)
     {
-        try
-        {
-            Player player = await _playerRepository.GetByGuidAsync(request.PlayerId);
-
-            ManagerLocator.MatchmakingManager.AddPlayer(player, client);
-
-            var response = new PlayerPlayGameResponse
-            {
-                Success = true,
-                Message = "Player added to matchmaking queue",
-            };
-            
-            Console.WriteLine($"[$] Player \"{player.Username}\" added to matchmaking queue. {player.Id}");
-
-            return response;
-        }
-        catch (Exception e)
-        {
-            Console.Error.WriteLine(e);
-            throw;
-        }
+      Console.Error.WriteLine(e);
+      throw;
     }
+  }
 }

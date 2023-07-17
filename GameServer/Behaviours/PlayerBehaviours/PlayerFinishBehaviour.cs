@@ -6,25 +6,25 @@ namespace GameServer.Behaviours.PlayerBehaviours;
 
 public class PlayerFinishRequest
 {
-    public Guid PlayerId;
+  public Guid PlayerId;
 }
 
 public class PlayerFinishResponse
 {
-    public bool? Success;
-    public string? Message;
+  public bool?   Success;
+  public string? Message;
 }
 
 public class PlayerFinishBehaviour : BehaviourBase<PlayerFinishRequest, PlayerFinishResponse>
 {
-    public override Task<PlayerFinishResponse> ExecuteBehaviourAsync(TcpClient client, PlayerFinishRequest request)
-    {
-        ManagerLocator.RoomManager.FinishPlayer(request.PlayerId);
-        
-        return Task.FromResult(new PlayerFinishResponse
-        {
-            Success = true,
-            Message = "Player finished"
-        });
-    }
+  public override Task<PlayerFinishResponse> ExecuteBehaviourAsync(TcpClient client, PlayerFinishRequest request)
+  {
+    ManagerLocator.RoomManager.FinishPlayer(request.PlayerId);
+
+    return Task.FromResult(new PlayerFinishResponse
+                           {
+                             Success = true,
+                             Message = "Player finished"
+                           });
+  }
 }

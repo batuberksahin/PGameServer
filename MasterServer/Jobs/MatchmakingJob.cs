@@ -11,84 +11,84 @@ namespace MasterServer.Jobs;
 
 public class MatchmakingJob : JobBase
 {
-    private const int MaxPlayers = 2;
-    
-    public override async Task RunAsync()
+  private const int MaxPlayers = 2;
+
+  public override async Task RunAsync()
+  {
+    try
     {
-        try
-        {
-            var playersCount = ManagerLocator.MatchmakingManager.GetPlayersCountInQueue();
+      var playersCount = ManagerLocator.MatchmakingManager.GetPlayersCountInQueue();
 
-            if (playersCount < MaxPlayers) return;
+      if (playersCount < MaxPlayers) return;
 
-            var players = ManagerLocator.MatchmakingManager.GetPlayersFromQueue(MaxPlayers);
-            var availableGameServerGuid = ManagerLocator.GameServerPingManager.GetActiveGameServerGuid();
-            
-            if (availableGameServerGuid == Guid.Empty)
-                return;
+      var players                 = ManagerLocator.MatchmakingManager.GetPlayersFromQueue(MaxPlayers);
+      var availableGameServerGuid = ManagerLocator.GameServerPingManager.GetActiveGameServerGuid();
 
-            GameServer gameServer = ManagerLocator.MatchmakingManager.GetGameServerByGuid(availableGameServerGuid);
-            
-            TcpClient gameServerTcpClient = new TcpClient();
-            await gameServerTcpClient.ConnectAsync(IPAddress.Parse("127.0.0.1"), gameServer.Port);
-            
-            //var gameServerTcpClient = ManagerLocator.MatchmakingManager.GetGameServerTcpClient(availableGameServerGuid);
-            await Messenger.SendResponseAsync(gameServerTcpClient, "server_new_room", new
-            {
-                Players = players.Keys.ToList()
-            });
+      if (availableGameServerGuid == Guid.Empty)
+        return;
 
-            var roomId = await HandleResponseAsync(gameServerTcpClient);
+      var gameServer = ManagerLocator.MatchmakingManager.GetGameServerByGuid(availableGameServerGuid);
 
-            var gameServerInfo = ManagerLocator.MatchmakingManager.GetGameServerByGuid(availableGameServerGuid);
+      var gameServerTcpClient = new TcpClient();
+      await gameServerTcpClient.ConnectAsync(IPAddress.Parse("127.0.0.1"), gameServer.Port);
 
-            foreach (KeyValuePair<Player, TcpClient> playerContainer in players)
-            {
-                await Messenger.SendResponseAsync(playerContainer.Value, "room_info", new
-                {
-                    GameServerAddress = "127.0.0.1",
-                    GameServerPort = gameServerInfo.Port,
-                    RoomId = roomId
-                });
+      //var gameServerTcpClient = ManagerLocator.MatchmakingManager.GetGameServerTcpClient(availableGameServerGuid);
+      await Messenger.SendResponseAsync(gameServerTcpClient, "server_new_room", new
+                                                                                {
+                                                                                  Players = players.Keys.ToList()
+                                                                                });
 
-                ManagerLocator.MatchmakingManager.RemovePlayer(playerContainer.Key);
-            }
+      var roomId = await HandleResponseAsync(gameServerTcpClient);
 
-            Console.WriteLine($"[#] Sent game server address to {players.Count} players");
-        }
-        catch (Exception e)
-        {
-            Console.Error.WriteLine(e);
-            throw;
-        }
+      var gameServerInfo = ManagerLocator.MatchmakingManager.GetGameServerByGuid(availableGameServerGuid);
+
+      foreach (KeyValuePair<Player, TcpClient> playerContainer in players)
+      {
+        await Messenger.SendResponseAsync(playerContainer.Value, "room_info", new
+                                                                              {
+                                                                                GameServerAddress = "127.0.0.1",
+                                                                                GameServerPort    = gameServerInfo.Port,
+                                                                                RoomId            = roomId
+                                                                              });
+
+        ManagerLocator.MatchmakingManager.RemovePlayer(playerContainer.Key);
+      }
+
+      Console.WriteLine($"[#] Sent game server address to {players.Count} players");
     }
-    
-    private async Task<Guid> HandleResponseAsync(TcpClient tcpClient)
+    catch (Exception e)
     {
-        var response = await ReadResponseAsync(tcpClient);
-        
-        try
-        {
-            var roomInfo = JsonConvert.DeserializeObject<dynamic>(response);
-
-            if (roomInfo != null) return roomInfo.RoomId;
-
-            return Guid.Empty;
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            return Guid.Empty;
-        }
+      Console.Error.WriteLine(e);
+      throw;
     }
+  }
 
-    private async Task<string> ReadResponseAsync(TcpClient tcpClient)
+  private async Task<Guid> HandleResponseAsync(TcpClient tcpClient)
+  {
+    var response = await ReadResponseAsync(tcpClient);
+
+    try
     {
-        NetworkStream stream = tcpClient.GetStream();
-        byte[] buffer = new byte[1024];
-        int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
-        string response = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-        
-        return response;
+      var roomInfo = JsonConvert.DeserializeObject<dynamic>(response);
+
+      if (roomInfo != null) return roomInfo.RoomId;
+
+      return Guid.Empty;
     }
+    catch (Exception e)
+    {
+      Console.WriteLine(e);
+      return Guid.Empty;
+    }
+  }
+
+  private async Task<string> ReadResponseAsync(TcpClient tcpClient)
+  {
+    var stream    = tcpClient.GetStream();
+    var buffer    = new byte[1024];
+    var bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
+    var response  = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+
+    return response;
+  }
 }

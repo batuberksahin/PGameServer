@@ -5,9 +5,9 @@ namespace NetworkLibrary.Jobs;
 
 public abstract class JobBase : IJob
 {
-    protected JobBase()
-    {
-    }
+  protected JobBase()
+  {
+  }
 
-    public abstract Task RunAsync();
+  public abstract Task RunAsync();
 }

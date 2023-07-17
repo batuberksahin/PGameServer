@@ -8,48 +8,48 @@ namespace GameServer.Behaviours.PlayerBehaviours;
 
 public class ConnectRequest
 {
-    public Guid PlayerId;
-    
-    public Guid RoomId;
+  public Guid PlayerId;
+
+  public Guid RoomId;
 }
 
 public class ConnectResponse
 {
-    public bool? Success;
-    public string? Message;
+  public bool?   Success;
+  public string? Message;
 }
 
 public class PlayerConnectBehaviour : BehaviourBase<ConnectRequest, ConnectResponse>
 {
-    private readonly IRepository<Player> _playerRepository;
+  private readonly IRepository<Player> _playerRepository;
 
-    public PlayerConnectBehaviour()
+  public PlayerConnectBehaviour()
+  {
+    _playerRepository = new PlayerRepository("Players");
+  }
+
+  public override async Task<ConnectResponse> ExecuteBehaviourAsync(TcpClient client, ConnectRequest request)
+  {
+    try
     {
-        _playerRepository = new PlayerRepository("Players");
+      var player = await _playerRepository.GetByGuidAsync(request.PlayerId);
+
+      player.ActiveRoom = request.RoomId;
+
+      await _playerRepository.UpdateAsync(player);
+
+      ManagerLocator.RoomManager.AddPlayer(player, client);
+
+      return new ConnectResponse
+             {
+               Success = true,
+               Message = "Connection established"
+             };
     }
-    
-    public override async Task<ConnectResponse> ExecuteBehaviourAsync(TcpClient client, ConnectRequest request)
+    catch (Exception e)
     {
-        try
-        {
-            Player player = await _playerRepository.GetByGuidAsync(request.PlayerId);
-
-            player.ActiveRoom = request.RoomId;
-
-            await _playerRepository.UpdateAsync(player);
-
-            ManagerLocator.RoomManager.AddPlayer(player, client);
-
-            return new ConnectResponse
-            {
-                Success = true,
-                Message = "Connection established"
-            };
-        }
-        catch (Exception e)
-        {
-            Console.Error.WriteLine(e);
-            throw;
-        }
+      Console.Error.WriteLine(e);
+      throw;
     }
+  }
 }

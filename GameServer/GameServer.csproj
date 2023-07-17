@@ -8,8 +8,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\NetworkLibrary\NetworkLibrary.csproj" />
-      <ProjectReference Include="..\RepositoryLibrary\RepositoryLibrary.csproj" />
+        <ProjectReference Include="..\NetworkLibrary\NetworkLibrary.csproj"/>
+        <ProjectReference Include="..\RepositoryLibrary\RepositoryLibrary.csproj"/>
     </ItemGroup>
 
 </Project>

@@ -4,5 +4,5 @@ namespace NetworkLibrary.Jobs;
 
 public interface IJob
 {
-    Task RunAsync();
+  Task RunAsync();
 }

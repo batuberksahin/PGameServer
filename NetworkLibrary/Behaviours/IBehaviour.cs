@@ -4,5 +4,5 @@ namespace NetworkLibrary.Behaviours;
 
 public interface IBehaviour
 {
-    Task ProcessRequestAsync(TcpClient client, string payload);
+  Task ProcessRequestAsync(TcpClient client, string payload);
 }

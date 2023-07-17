@@ -2,8 +2,7 @@
 
 public class ManagerLocator
 {
-    private static readonly Lazy<RoomManager> RoomManagerInstance =
-        new Lazy<RoomManager>(() => new RoomManager());
+  private static readonly Lazy<RoomManager> RoomManagerInstance = new(() => new RoomManager());
 
-    public static RoomManager RoomManager => RoomManagerInstance.Value;
+  public static RoomManager RoomManager => RoomManagerInstance.Value;
 }

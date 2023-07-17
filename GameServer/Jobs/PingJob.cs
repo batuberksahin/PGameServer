@@ -10,81 +10,81 @@ namespace GameServer.Jobs;
 
 public class PingRequest
 {
-    public Guid? ServerId;
-    public int? ServerPort;
-    public long? Timestamp;
+  public Guid? ServerId;
+  public int?  ServerPort;
+  public long? Timestamp;
 }
 
 public class OpenRequest
 {
-    public Guid ServerId;
-    public string? ServerIpAddress;
-    public int? ServerPort;
-    public long? Timestamp;
+  public Guid    ServerId;
+  public string? ServerIpAddress;
+  public int?    ServerPort;
+  public long?   Timestamp;
 }
 
 public class PingJob : JobBase
 {
-    private readonly string _ipAddress;
-    private readonly int _port;
-    
-    private readonly TcpClient _tcpClient;
-    
-    public PingJob(TcpClient tcpClient, string ipAddress, int port)
-    {
-        _tcpClient = tcpClient;
-        
-        _ipAddress = ipAddress;
-        _port = port;
-    }
-    
-    public override async Task RunAsync()
-    {
-        try
-        {
-            // Create tcp connection
-            if (!_tcpClient.Connected)
-                await _tcpClient.ConnectAsync(_ipAddress, _port);
-            
-            var pingRequest = new PingRequest
-            {
-                ServerId = GameServer.ServerId,
-                ServerPort = GameServer.Port,
-                Timestamp = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds()
-            };
-            
-            // Send ping request
-            await Messenger.SendResponseAsync(_tcpClient, "server_ping", pingRequest);
+  private readonly string _ipAddress;
+  private readonly int    _port;
 
-            // Handle response
-            Task.Run((() => HandleResponseAsync(_tcpClient)));
-        }
-        catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
-        {
-            Console.WriteLine("Connection to MasterServer refused.");
-        }
-        catch (ObjectDisposedException)
-        {
-            Console.WriteLine("TcpClient has been disposed.");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error sending ping request: {ex.Message} {ex.Source}");
-        }
-    }
+  private readonly TcpClient _tcpClient;
 
-    private async Task HandleResponseAsync(TcpClient tcpClient)
-    {
-        var response = await ReadResponseAsync(tcpClient);
-    }
+  public PingJob(TcpClient tcpClient, string ipAddress, int port)
+  {
+    _tcpClient = tcpClient;
 
-    private async Task<string> ReadResponseAsync(TcpClient tcpClient)
+    _ipAddress = ipAddress;
+    _port      = port;
+  }
+
+  public override async Task RunAsync()
+  {
+    try
     {
-        NetworkStream stream = tcpClient.GetStream();
-        byte[] buffer = new byte[1024];
-        int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
-        string response = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-        
-        return response;
+      // Create tcp connection
+      if (!_tcpClient.Connected)
+        await _tcpClient.ConnectAsync(_ipAddress, _port);
+
+      var pingRequest = new PingRequest
+                        {
+                          ServerId   = GameServer.ServerId,
+                          ServerPort = GameServer.Port,
+                          Timestamp  = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds()
+                        };
+
+      // Send ping request
+      await Messenger.SendResponseAsync(_tcpClient, "server_ping", pingRequest);
+
+      // Handle response
+      Task.Run(() => HandleResponseAsync(_tcpClient));
     }
+    catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
+    {
+      Console.WriteLine("Connection to MasterServer refused.");
+    }
+    catch (ObjectDisposedException)
+    {
+      Console.WriteLine("TcpClient has been disposed.");
+    }
+    catch (Exception ex)
+    {
+      Console.WriteLine($"Error sending ping request: {ex.Message} {ex.Source}");
+    }
+  }
+
+  private async Task HandleResponseAsync(TcpClient tcpClient)
+  {
+    var response = await ReadResponseAsync(tcpClient);
+  }
+
+  private async Task<string> ReadResponseAsync(TcpClient tcpClient)
+  {
+    var stream    = tcpClient.GetStream();
+    var buffer    = new byte[1024];
+    var bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
+    var response  = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+
+    return response;
+  }
 }

@@ -2,9 +2,9 @@
 
 public class Room
 {
-    public Guid Id;
-    public List<Player>? ActivePlayers;
-    public int Capacity;
-    
-    public DateTime CreatedAt = DateTime.Now;
+  public Guid          Id;
+  public List<Player>? ActivePlayers;
+  public int           Capacity;
+
+  public DateTime CreatedAt = DateTime.Now;
 }
