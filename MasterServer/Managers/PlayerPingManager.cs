@@ -38,4 +38,9 @@ public class PlayerPingManager
             return false;
         });
     }
+
+    public int GetActivePlayerCount()
+    {
+        return _playerPings.Count(pair => DateTime.Now - pair.Value <= TimeSpan.FromSeconds(1));
+    }
 }

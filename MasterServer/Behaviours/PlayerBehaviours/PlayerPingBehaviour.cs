@@ -13,6 +13,8 @@ public class PlayerPingResponse
 {
     public bool? Success;
     public string? Message;
+
+    public int ActivePlayerCount;
 }
 
 
@@ -22,6 +24,8 @@ public class PlayerPingBehaviour : BehaviourBase<PlayerPingRequest, PlayerPingRe
     {
         ManagerLocator.PlayerPingManager.PingPlayer(request.PlayerId);
 
-        return await Task.FromResult(new PlayerPingResponse{ Success = true, Message = "Ping received"});
+        var activePlayerCount = ManagerLocator.PlayerPingManager.GetActivePlayerCount();
+        
+        return await Task.FromResult(new PlayerPingResponse{ Success = true, Message = "Ping received", ActivePlayerCount = activePlayerCount });
     }
 }
