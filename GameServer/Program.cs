@@ -17,6 +17,8 @@ public static class GameServer
 
   private static void Main(string[] args)
   {
+    Console.Title = "Game Server";
+    
     ITcpServer server = new TcpServer(Port);
 
     server.RegisterBehaviour("server_new_room", new NewRoomBehaviour());

@@ -38,6 +38,11 @@ public class PingJob : JobBase
     _port      = port;
   }
 
+  public override Task StartAsync()
+  {
+    return Task.CompletedTask;
+  }
+  
   public override async Task RunAsync()
   {
     try

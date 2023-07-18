@@ -9,5 +9,6 @@ public abstract class JobBase : IJob
   {
   }
 
+  public abstract Task StartAsync();
   public abstract Task RunAsync();
 }

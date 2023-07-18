@@ -13,6 +13,11 @@ public class MatchmakingJob : JobBase
 {
   private const int MaxPlayers = 2;
 
+  public override Task StartAsync()
+  {
+    return Task.CompletedTask;
+  }
+  
   public override async Task RunAsync()
   {
     try

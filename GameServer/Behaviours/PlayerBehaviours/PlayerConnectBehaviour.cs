@@ -34,6 +34,7 @@ public class PlayerConnectBehaviour : BehaviourBase<ConnectRequest, ConnectRespo
     {
       var player = await _playerRepository.GetByGuidAsync(request.PlayerId);
 
+      Console.WriteLine($"received connection request from {request.RoomId}");
       player.ActiveRoom = request.RoomId;
 
       await _playerRepository.UpdateAsync(player);

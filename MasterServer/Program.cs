@@ -10,6 +10,8 @@ public static class MasterServer
 {
   private static void Main(string[] args)
   {
+    Console.Title = "Master Server";
+
     ITcpServer server = new TcpServer(8888);
 
     // Player Behaviours

@@ -3,6 +3,7 @@ using System.Numerics;
 using Amazon.Runtime.Internal.Transform;
 using GameServer.Jobs;
 using NetworkLibrary.Jobs;
+using RepositoryLibrary;
 using RepositoryLibrary.Models;
 
 namespace GameServer.Managers;
@@ -21,16 +22,16 @@ public class RoomManager
 
   private Dictionary<KeyValuePair<Guid, Guid>, KeyValuePair<DateTime, bool>> _playerFinishStatuses;
 
+  private Dictionary<Guid, string> _playerNames;
+
   public RoomManager()
   {
-    _roomStartStatuses = new Dictionary<Guid, bool>();
-    _roomSchedulers    = new Dictionary<Guid, JobScheduler>();
-
-    _playerClients       = new Dictionary<KeyValuePair<Guid, Guid>, TcpClient>();
-    _playerReadyStatuses = new Dictionary<KeyValuePair<Guid, Guid>, bool>();
-
-    _playerPositions = new Dictionary<KeyValuePair<Guid, Guid>, KeyValuePair<Vector3, Quaternion>>();
-
+    _roomStartStatuses    = new Dictionary<Guid, bool>();
+    _roomSchedulers       = new Dictionary<Guid, JobScheduler>();
+    _playerNames          = new Dictionary<Guid, string>();
+    _playerClients        = new Dictionary<KeyValuePair<Guid, Guid>, TcpClient>();
+    _playerReadyStatuses  = new Dictionary<KeyValuePair<Guid, Guid>, bool>();
+    _playerPositions      = new Dictionary<KeyValuePair<Guid, Guid>, KeyValuePair<Vector3, Quaternion>>();
     _playerFinishStatuses = new Dictionary<KeyValuePair<Guid, Guid>, KeyValuePair<DateTime, bool>>();
 
     _rooms = new List<Room>();
@@ -54,10 +55,9 @@ public class RoomManager
   {
     try
     {
-      if (player.ActiveRoom != null)
-        _playerClients.Add(new KeyValuePair<Guid, Guid>(player.ActiveRoom.Value, player.Id), client);
-
-      _playerReadyStatuses.Add(new KeyValuePair<Guid, Guid>(player.ActiveRoom.Value, player.Id), false);
+      _playerClients.Add(new KeyValuePair<Guid, Guid>(player.ActiveRoom.Value, player.Id), client);
+      
+      _playerNames.Add(player.Id, player.Username);
     }
     catch (Exception e)
     {
@@ -82,6 +82,11 @@ public class RoomManager
     }
   }
 
+  public bool IsPlayerExistsInRoom(Guid playerId)
+  {
+    return _playerClients.Keys.Any(x => x.Value == playerId);
+  }
+
   public void ReadyPlayer(Guid playerId)
   {
     var roomId = _playerClients.Keys.FirstOrDefault(x => x.Value == playerId).Key;
@@ -98,9 +103,15 @@ public class RoomManager
 
   public bool IsPlayerReady(Guid playerId)
   {
-    var roomId = _playerClients.Keys.FirstOrDefault(x => x.Value == playerId).Key;
-
-    return _playerReadyStatuses[new KeyValuePair<Guid, Guid>(roomId, playerId)];
+    try
+    {
+      var roomId = _playerClients.Keys.FirstOrDefault(x => x.Value == playerId).Key;
+      return _playerReadyStatuses[new KeyValuePair<Guid, Guid>(roomId, playerId)];
+    }
+    catch
+    {
+      return false;
+    }
   }
 
   public bool IsRoomReady(Room room)
@@ -120,17 +131,13 @@ public class RoomManager
   {
     _roomStartStatuses[room.Id] = true;
 
-    var jobScheduler = new JobScheduler(TimeSpan.FromSeconds(1.0 / 60.0));
+    var jobScheduler = new JobScheduler(TimeSpan.FromMilliseconds(16));
 
-    List<TcpClient> clients = new();
-
-    foreach (var ids in _playerClients.Keys)
-      if (ids.Key == room.Id)
-        clients.Add(_playerClients[ids]);
-
-    jobScheduler.RegisterTask(new StreamGameData(room, clients));
+    jobScheduler.RegisterTask(new StreamGameData(room));
 
     jobScheduler.Start();
+    
+    Console.WriteLine($"[RoomManager] Room {room.Id} started.");
 
     _roomSchedulers.Add(room.Id, jobScheduler);
   }
@@ -150,6 +157,11 @@ public class RoomManager
   public List<Player> GetPlayersInRoom(Room room)
   {
     return room.ActivePlayers ?? new List<Player>();
+  }
+  
+  public List<TcpClient> GetClientsInRoom(Room room)
+  {
+    return _playerClients.Where(x => x.Key.Key == room.Id).Select(x => x.Value).ToList();
   }
 
   public void UpdatePlayerPositionAndRotation(Guid playerId, Vector3 position, Quaternion rotation)
@@ -191,5 +203,10 @@ public class RoomManager
     var roomId = _playerClients.Keys.FirstOrDefault(x => x.Value == playerId).Key;
 
     return _playerFinishStatuses[new KeyValuePair<Guid, Guid>(roomId, playerId)].Key;
+  }
+
+  public string GetPlayerName(Guid playerId)
+  {
+    return _playerNames.TryGetValue(playerId, out var name) ? name : "Unknown";
   }
 }

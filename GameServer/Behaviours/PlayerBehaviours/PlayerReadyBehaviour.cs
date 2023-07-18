@@ -17,14 +17,19 @@ public class PlayerReadyResponse
 
 public class PlayerReadyBehaviour : BehaviourBase<PlayerReadyRequest, PlayerReadyResponse>
 {
-  public override Task<PlayerReadyResponse> ExecuteBehaviourAsync(TcpClient client, PlayerReadyRequest request)
+  public override async Task<PlayerReadyResponse> ExecuteBehaviourAsync(TcpClient client, PlayerReadyRequest request)
   {
+    while (!ManagerLocator.RoomManager.IsPlayerExistsInRoom(request.PlayerId))
+    {
+      await Task.Delay(100);
+    }
+    
     ManagerLocator.RoomManager.ReadyPlayer(request.PlayerId);
 
-    return Task.FromResult(new PlayerReadyResponse
+    return new PlayerReadyResponse
                            {
                              Success = true,
                              Message = "Player is ready"
-                           });
+                           };
   }
 }

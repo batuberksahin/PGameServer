@@ -12,6 +12,13 @@ using RepositoryLibrary.Models;
 
 namespace GameServer.Jobs;
 
+public class PlayerReadyStatus
+{
+  public Guid   PlayerId;
+  public string PlayerName;
+  public bool   IsReady;
+}
+
 public class StreamGameData : JobBase
 {
   private Room            _room;
@@ -24,97 +31,174 @@ public class StreamGameData : JobBase
   private int      _countdownTime;
   private DateTime _startTime;
 
-  public StreamGameData(Room room, List<TcpClient> clients)
+  private CancellationTokenSource _cancellationTokenSource;
+
+  public StreamGameData(Room room)
   {
     _room    = room;
-    _clients = clients;
+    _clients = new List<TcpClient>();
 
     _players = room.ActivePlayers;
+    
+    _cancellationTokenSource = new CancellationTokenSource();
+  }
+
+  public override Task StartAsync()
+  {
+    Task.Run(async () =>
+             {
+               while (!_cancellationTokenSource.Token.IsCancellationRequested)
+               {
+                 _clients = ManagerLocator.RoomManager.GetClientsInRoom(_room);
+                 
+                 await Task.Delay(1000);
+               }
+             });
+    
+    return Task.CompletedTask;
   }
 
   public override async Task RunAsync()
   {
-    if (!_gameStarted)
+    try
     {
-      if (AllPlayersReady())
+      if (!_gameStarted)
       {
-        await StartCountdown();
-        _gameStarted = true;
-        _startTime   = DateTime.UtcNow;
+        if (AllPlayersReady())
+        {
+          await StartCountdown();
+          _gameStarted = true;
+          _startTime   = DateTime.UtcNow;
+        }
+        else
+        {
+          await SendPlayersReadyStatus();
+        }
       }
       else
       {
-        await SendPlayersReadyStatus();
+        if (_countdownStarted)
+          await UpdateCountdown();
+        else
+          await UpdateGameLogic();
       }
     }
-    else
+    catch (Exception e)
     {
-      if (_countdownStarted)
-        await UpdateCountdown();
-      else
-        await UpdateGameLogic();
+      Console.Error.WriteLine(e);
+      throw;
     }
   }
 
   private bool AllPlayersReady()
   {
-    return (_players ?? throw new InvalidOperationException()).All(player =>
-                                                                     ManagerLocator.RoomManager
-                                                                                   .IsPlayerReady(player.Id));
+    try
+    {
+      return (_players ?? throw new InvalidOperationException()).All(player =>
+                                                                       ManagerLocator.RoomManager
+                                                                                     .IsPlayerReady(player.Id));
+    }
+    catch (Exception e)
+    {
+      Console.Error.WriteLine(e);
+      throw;
+    }
   }
 
   private async Task StartCountdown()
   {
-    _countdownTime    = 3;
-    _countdownStarted = true;
-
-    while (_countdownTime > 0)
+    try
     {
-      await SendCountdown();
-      await Task.Delay(1000);
-      _countdownTime--;
-    }
+      _countdownTime    = 3;
+      _countdownStarted = true;
 
-    await SendGameStarted();
-    _countdownStarted = false;
+      while (_countdownTime > 0)
+      {
+        await SendCountdown();
+        await Task.Delay(1000);
+        _countdownTime--;
+      }
+
+      await SendGameStarted();
+      _countdownStarted = false;
+    }
+    catch (Exception e)
+    {
+      Console.Error.WriteLine(e);
+      throw;
+    }
   }
 
   private async Task SendCountdown()
   {
-    var countdownObject = JsonConvert.SerializeObject(new
-                                                      {
-                                                        Countdown = _countdownTime
-                                                      });
+    try
+    {
+      var countdownObject = JsonConvert.SerializeObject(new
+                                                        {
+                                                          Countdown = _countdownTime
+                                                        });
 
-    foreach (var client in _clients) await Messenger.SendResponseAsync(client, "countdown", countdownObject);
+      foreach (var client in _clients) await Messenger.SendResponseAsync(client, "countdown", countdownObject);
+    }
+    catch (Exception e)
+    {
+      Console.Error.WriteLine(e);
+      throw;
+    }
   }
 
   private async Task SendGameStarted()
-
   {
-    _startTime = DateTime.Now;
+    try
+    {
+      _startTime = DateTime.Now;
 
-    var gameStartedObject = JsonConvert.SerializeObject(new
-                                                        {
-                                                          StartTime = _startTime
-                                                        });
+      var gameStartedObject = JsonConvert.SerializeObject(new
+                                                          {
+                                                            StartTime = _startTime
+                                                          });
 
-    foreach (var client in _clients) await Messenger.SendResponseAsync(client, "game_started", gameStartedObject);
+      foreach (var client in _clients) await Messenger.SendResponseAsync(client, "game_started", gameStartedObject);
+    }
+    catch (Exception e)
+    {
+      Console.Error.WriteLine(e);
+      throw;
+    }
   }
 
   private async Task SendPlayersReadyStatus()
   {
-    // combine players id and their ready status in a dictionary
-    var playersReadyStatus =
-      _players.ToDictionary(player => player.Id, player => ManagerLocator.RoomManager.IsPlayerReady(player.Id));
+    try
+    {
+      var playersReadyStatus = new List<PlayerReadyStatus>();
+      
+      foreach (var player in _players)
+      {
+        var playerReadyStatus = new PlayerReadyStatus
+                                {
+                                  PlayerId   = player.Id,
+                                  PlayerName = ManagerLocator.RoomManager.GetPlayerName(player.Id),
+                                  IsReady    = ManagerLocator.RoomManager.IsPlayerReady(player.Id)
+                                };
 
-    var playersReadyStatusObject = JsonConvert.SerializeObject(new
-                                                               {
-                                                                 PlayerStatuses = playersReadyStatus
-                                                               });
+        playersReadyStatus.Add(playerReadyStatus);
+      }
 
-    foreach (var client in _clients)
-      await Messenger.SendResponseAsync(client, "players_status", playersReadyStatusObject);
+
+      var playersReadyStatusObject = JsonConvert.SerializeObject(new
+                                                                 {
+                                                                   playersReadyStatus
+                                                                 });
+
+      foreach (var client in _clients)
+        await Messenger.SendResponseAsync(client, "players_status", playersReadyStatusObject);
+    }
+    catch (Exception e)
+    {
+      Console.Error.WriteLine(e);
+      throw;
+    }
   }
 
   private async Task UpdateCountdown()
@@ -136,8 +220,6 @@ public class StreamGameData : JobBase
       await Messenger.SendResponseAsync(client, "player_positions", playerPositionsObject);
 
     if (GameEndConditionMet()) await FinishGame();
-
-    await Task.Delay(16);
   }
 
   private Dictionary<Guid, KeyValuePair<Vector3, Quaternion>> GetPlayerPositions()
@@ -169,6 +251,8 @@ public class StreamGameData : JobBase
 
   private async Task FinishGame()
   {
+    Console.WriteLine($"{_room.Id} game finished");
+
     var playersTime = new Dictionary<Guid, int>();
 
     foreach (var player in _players)

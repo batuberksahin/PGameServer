@@ -31,6 +31,8 @@ public class JobScheduler
 
   private async Task RunJobsPeriodically(CancellationToken cancellationToken)
   {
+    foreach (var job in _jobs) await job.StartAsync();
+    
     while (!cancellationToken.IsCancellationRequested)
     {
       await Task.Delay(_interval, cancellationToken);
