@@ -32,6 +32,12 @@ public class StreamGameData : JobBase
   private DateTime _startTime;
 
   private CancellationTokenSource _cancellationTokenSource;
+  
+  private JsonSerializerSettings _jsonSerializerSettings = new JsonSerializerSettings
+                                                            {
+                                                              ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                                                              TypeNameHandling      = TypeNameHandling.Auto,
+                                                            };
 
   public StreamGameData(Room room)
   {
@@ -109,13 +115,13 @@ public class StreamGameData : JobBase
   {
     try
     {
-      _countdownTime    = 3;
+      _countdownTime    = 4;
       _countdownStarted = true;
 
       while (_countdownTime > 0)
       {
         await SendCountdown();
-        await Task.Delay(1000);
+        await Task.Delay(3000);
         _countdownTime--;
       }
 
@@ -133,12 +139,7 @@ public class StreamGameData : JobBase
   {
     try
     {
-      var countdownObject = JsonConvert.SerializeObject(new
-                                                        {
-                                                          Countdown = _countdownTime
-                                                        });
-
-      foreach (var client in _clients) await Messenger.SendResponseAsync(client, "countdown", countdownObject);
+      foreach (var client in _clients) await Messenger.SendResponseAsync(client, "countdown", _countdownTime);
     }
     catch (Exception e)
     {
@@ -153,12 +154,7 @@ public class StreamGameData : JobBase
     {
       _startTime = DateTime.Now;
 
-      var gameStartedObject = JsonConvert.SerializeObject(new
-                                                          {
-                                                            StartTime = _startTime
-                                                          });
-
-      foreach (var client in _clients) await Messenger.SendResponseAsync(client, "game_started", gameStartedObject);
+      foreach (var client in _clients) await Messenger.SendResponseAsync(client, "game_started", _startTime);
     }
     catch (Exception e)
     {
@@ -184,15 +180,9 @@ public class StreamGameData : JobBase
 
         playersReadyStatus.Add(playerReadyStatus);
       }
-
-
-      var playersReadyStatusObject = JsonConvert.SerializeObject(new
-                                                                 {
-                                                                   playersReadyStatus
-                                                                 });
-
+      
       foreach (var client in _clients)
-        await Messenger.SendResponseAsync(client, "players_status", playersReadyStatusObject);
+        await Messenger.SendResponseAsync(client, "players_status", playersReadyStatus);
     }
     catch (Exception e)
     {
@@ -204,20 +194,15 @@ public class StreamGameData : JobBase
   private async Task UpdateCountdown()
   {
     // Do nothing during countdown
-    await Task.Delay(1000);
+    await Task.Delay(3000);
   }
 
   private async Task UpdateGameLogic()
   {
     var playerPositions = GetPlayerPositions();
 
-    var playerPositionsObject = JsonConvert.SerializeObject(new
-                                                            {
-                                                              PlayerPositions = playerPositions
-                                                            });
-
     foreach (var client in _clients)
-      await Messenger.SendResponseAsync(client, "player_positions", playerPositionsObject);
+      await Messenger.SendResponseAsync(client, "player_positions", playerPositions);
 
     if (GameEndConditionMet()) await FinishGame();
   }
@@ -258,12 +243,7 @@ public class StreamGameData : JobBase
     foreach (var player in _players)
       playersTime[player.Id] = ManagerLocator.RoomManager.GetPlayerFinishTime(player.Id).Subtract(_startTime).Seconds;
 
-    var resultsObject = JsonConvert.SerializeObject(new
-                                                    {
-                                                      Results = playersTime
-                                                    });
-
-    foreach (var client in _clients) await Messenger.SendResponseAsync(client, "game_results", resultsObject);
+    foreach (var client in _clients) await Messenger.SendResponseAsync(client, "game_results", playersTime);
 
     ManagerLocator.RoomManager.StopRoom(_room);
   }

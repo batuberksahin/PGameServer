@@ -57,7 +57,9 @@ public class RoomManager
     {
       _playerClients.Add(new KeyValuePair<Guid, Guid>(player.ActiveRoom.Value, player.Id), client);
       
-      _playerNames.Add(player.Id, player.Username);
+      // if not contains in playerNames
+      if (!_playerNames.ContainsKey(player.Id))
+        _playerNames.Add(player.Id, player.Username);
     }
     catch (Exception e)
     {
@@ -180,6 +182,25 @@ public class RoomManager
   {
     var roomId = _playerClients.Keys.FirstOrDefault(x => x.Value == playerId).Key;
 
+    if (!_playerPositions.ContainsKey(new KeyValuePair<Guid, Guid>(_playerClients.Keys.FirstOrDefault(x => x.Value == playerId).Key, playerId)))
+    {
+      var room = _rooms.FirstOrDefault(x => x.Id == roomId);
+
+      var player = room?.ActivePlayers?.FirstOrDefault(x => x.Id == playerId);
+
+      var position = new Vector3(0, 0, 0);
+
+      if (room != null)
+      {
+        var order = room.ActivePlayers.IndexOf(player);
+
+        position = new Vector3(order * 2, 0, 0);
+      }
+
+      _playerPositions.Add(new KeyValuePair<Guid, Guid>(roomId, playerId),
+        new KeyValuePair<Vector3, Quaternion>(position, Quaternion.Identity));
+    }
+    
     return _playerPositions[new KeyValuePair<Guid, Guid>(roomId, playerId)];
   }
 
@@ -193,6 +214,10 @@ public class RoomManager
 
   public bool IsPlayerFinish(Guid playerId)
   {
+    // if not exist in _playerFinishStatuses return false
+    if (!_playerFinishStatuses.ContainsKey(new KeyValuePair<Guid, Guid>(_playerClients.Keys.FirstOrDefault(x => x.Value == playerId).Key, playerId)))
+      return false;
+    
     var roomId = _playerClients.Keys.FirstOrDefault(x => x.Value == playerId).Key;
 
     return _playerFinishStatuses[new KeyValuePair<Guid, Guid>(roomId, playerId)].Value;
