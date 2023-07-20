@@ -24,6 +24,8 @@ public class PlayerReadyBehaviour : BehaviourBase<PlayerReadyRequest, PlayerRead
       await Task.Delay(100);
     }
     
+    await Task.Delay(new Random().Next(500, 3000));
+
     ManagerLocator.RoomManager.ReadyPlayer(request.PlayerId);
 
     return new PlayerReadyResponse
