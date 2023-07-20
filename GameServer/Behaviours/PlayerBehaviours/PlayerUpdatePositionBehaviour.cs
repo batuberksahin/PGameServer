@@ -8,7 +8,9 @@ namespace GameServer.Behaviours.PlayerBehaviours;
 public class PlayerUpdatePositionRequest
 {
   public Guid       PlayerId;
-  public Vector3    Position;
+  public float    PositionX;
+  public float    PositionY;
+  public float    PositionZ;
   public Quaternion Rotation;
 }
 
@@ -23,7 +25,7 @@ public class PlayerUpdatePositionBehaviour : BehaviourBase<PlayerUpdatePositionR
   public override Task<PlayerUpdatePositionResponse> ExecuteBehaviourAsync(
     TcpClient client, PlayerUpdatePositionRequest request)
   {
-    ManagerLocator.RoomManager.UpdatePlayerPositionAndRotation(request.PlayerId, request.Position,
+    ManagerLocator.RoomManager.UpdatePlayerPositionAndRotation(request.PlayerId, request.PositionX, request.PositionY, request.PositionZ,
                                                                request.Rotation);
 
     return Task.FromResult(new PlayerUpdatePositionResponse

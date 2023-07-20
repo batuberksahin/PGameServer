@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Sockets;
 using System.Numerics;
 using System.Text;
@@ -14,9 +15,17 @@ namespace GameServer.Jobs;
 
 public class PlayerReadyStatus
 {
-  public Guid   PlayerId;
-  public string PlayerName;
-  public bool   IsReady;
+  public Guid    PlayerId;
+  public string  PlayerName;
+  public bool    IsReady;
+  public List<float> Position;
+}
+
+public class PlayerPosition
+{
+  public Guid    PlayerId;
+  public List<float> Position;
+  public List<float> Rotation;
 }
 
 public class StreamGameData : JobBase
@@ -28,6 +37,7 @@ public class StreamGameData : JobBase
 
   private bool     _gameStarted;
   private bool     _countdownStarted;
+  private bool     _playerReadyStatusSendOnce;
   private int      _countdownTime;
   private DateTime _startTime;
 
@@ -45,6 +55,8 @@ public class StreamGameData : JobBase
     _clients = new List<TcpClient>();
 
     _players = room.ActivePlayers;
+
+    _playerReadyStatusSendOnce = false;
     
     _cancellationTokenSource = new CancellationTokenSource();
   }
@@ -72,6 +84,13 @@ public class StreamGameData : JobBase
       {
         if (AllPlayersReady())
         {
+          if (!_playerReadyStatusSendOnce)
+          {
+            await SendPlayersReadyStatus();
+            
+            return;
+          }
+          
           await StartCountdown();
           _gameStarted = true;
           _startTime   = DateTime.UtcNow;
@@ -83,6 +102,13 @@ public class StreamGameData : JobBase
       }
       else
       {
+        if (!_playerReadyStatusSendOnce)
+        {
+          await SendPlayersReadyStatus();
+            
+          return;
+        }
+        
         if (_countdownStarted)
           await UpdateCountdown();
         else
@@ -154,7 +180,11 @@ public class StreamGameData : JobBase
     {
       _startTime = DateTime.Now;
 
-      foreach (var client in _clients) await Messenger.SendResponseAsync(client, "game_started", _startTime);
+      foreach (var client in _clients) await Messenger.SendResponseAsync(client, "game_started", new
+                                                                                                 {
+                                                                                                   StartTime = _startTime,
+                                                                                                   Players = GetPlayersReadyStatus()
+                                                                                                 });
     }
     catch (Exception e)
     {
@@ -163,26 +193,44 @@ public class StreamGameData : JobBase
     }
   }
 
+  private List<PlayerReadyStatus> GetPlayersReadyStatus()
+  {
+    var playersReadyStatus = new List<PlayerReadyStatus>();
+      
+    foreach (var player in _players)
+    {
+      var playerPositionVector3 = ManagerLocator.RoomManager.GetPlayerPositionToOrder(player.Id);
+        
+      // map vector3 to float list
+      var playerPosition = new List<float>
+                           {
+                             playerPositionVector3.X,
+                             playerPositionVector3.Y,
+                             playerPositionVector3.Z
+                           };
+        
+      var playerReadyStatus = new PlayerReadyStatus
+                              {
+                                PlayerId   = player.Id,
+                                PlayerName = ManagerLocator.RoomManager.GetPlayerName(player.Id),
+                                IsReady    = ManagerLocator.RoomManager.IsPlayerReady(player.Id),
+                                Position   = playerPosition
+                              };
+
+      playersReadyStatus.Add(playerReadyStatus);
+    }
+
+    return playersReadyStatus;
+  }
+  
   private async Task SendPlayersReadyStatus()
   {
     try
     {
-      var playersReadyStatus = new List<PlayerReadyStatus>();
-      
-      foreach (var player in _players)
-      {
-        var playerReadyStatus = new PlayerReadyStatus
-                                {
-                                  PlayerId   = player.Id,
-                                  PlayerName = ManagerLocator.RoomManager.GetPlayerName(player.Id),
-                                  IsReady    = ManagerLocator.RoomManager.IsPlayerReady(player.Id)
-                                };
-
-        playersReadyStatus.Add(playerReadyStatus);
-      }
-      
       foreach (var client in _clients)
-        await Messenger.SendResponseAsync(client, "players_status", playersReadyStatus);
+        await Messenger.SendResponseAsync(client, "players_status", GetPlayersReadyStatus());
+      
+      _playerReadyStatusSendOnce = true;
     }
     catch (Exception e)
     {
@@ -202,26 +250,28 @@ public class StreamGameData : JobBase
     var playerPositions = GetPlayerPositions();
 
     foreach (var client in _clients)
-      await Messenger.SendResponseAsync(client, "player_positions", playerPositions);
+    {
+      Task.Run(() => Messenger.SendResponseAsync(client, "player_positions", playerPositions));
+    }
 
     if (GameEndConditionMet()) await FinishGame();
   }
 
-  private Dictionary<Guid, KeyValuePair<Vector3, Quaternion>> GetPlayerPositions()
+  private List<PlayerPosition> GetPlayerPositions()
   {
-    Dictionary<Guid, KeyValuePair<Vector3, Quaternion>> playerPositions = new();
+    List<PlayerPosition> playerPositions = new List<PlayerPosition>();
 
     foreach (var player in _players)
     {
-      var position = GetPlayerPosition(player.Id);
+      var playerPosition = GetPlayerPosition(player.Id);
 
-      playerPositions[player.Id] = position;
+      playerPositions.Add(playerPosition);
     }
 
     return playerPositions;
   }
 
-  private KeyValuePair<Vector3, Quaternion> GetPlayerPosition(Guid playerId)
+  private PlayerPosition GetPlayerPosition(Guid playerId)
   {
     return ManagerLocator.RoomManager.GetPlayerPositionAndRotation(playerId);
   }

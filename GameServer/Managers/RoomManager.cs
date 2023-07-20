@@ -166,58 +166,85 @@ public class RoomManager
     return _playerClients.Where(x => x.Key.Key == room.Id).Select(x => x.Value).ToList();
   }
 
-  public void UpdatePlayerPositionAndRotation(Guid playerId, Vector3 position, Quaternion rotation)
+  public void UpdatePlayerPositionAndRotation(Guid playerId, float X, float Y, float Z, Quaternion rotation)
   {
-    var roomId = _playerClients.Keys.FirstOrDefault(x => x.Value == playerId).Key;
-
-    var room = _rooms.FirstOrDefault(x => x.Id == roomId);
-
-    var player = room?.ActivePlayers?.FirstOrDefault(x => x.Id == playerId);
-
-    _playerPositions[new KeyValuePair<Guid, Guid>(roomId, playerId)] =
-      new KeyValuePair<Vector3, Quaternion>(position, rotation);
-  }
-
-  public KeyValuePair<Vector3, Quaternion> GetPlayerPositionAndRotation(Guid playerId)
-  {
-    var roomId = _playerClients.Keys.FirstOrDefault(x => x.Value == playerId).Key;
-
-    if (!_playerPositions.ContainsKey(new KeyValuePair<Guid, Guid>(_playerClients.Keys.FirstOrDefault(x => x.Value == playerId).Key, playerId)))
+    try
     {
+      var roomId = _playerClients.Keys.FirstOrDefault(x => x.Value == playerId).Key;
+
       var room = _rooms.FirstOrDefault(x => x.Id == roomId);
 
       var player = room?.ActivePlayers?.FirstOrDefault(x => x.Id == playerId);
 
-      var position = new Vector3(0, 0, 0);
+      var position = new Vector3(X, Y, Z);
 
-      if (room != null)
-      {
-        var order = room.ActivePlayers.IndexOf(player);
-
-        position = new Vector3(order * 2, 0, 0);
-      }
-
-      _playerPositions.Add(new KeyValuePair<Guid, Guid>(roomId, playerId),
-        new KeyValuePair<Vector3, Quaternion>(position, Quaternion.Identity));
+      _playerPositions[new KeyValuePair<Guid, Guid>(roomId, playerId)] =
+        new KeyValuePair<Vector3, Quaternion>(position, rotation);
     }
+    catch (Exception e)
+    {
+      Console.Error.WriteLine(e);
+      throw;
+    }
+  }
+
+  public PlayerPosition GetPlayerPositionAndRotation(Guid playerId)
+  {
+    // if doesnt exist in _playerPositions return default
+    if (!_playerPositions.ContainsKey(new KeyValuePair<Guid, Guid>(_playerClients.Keys.FirstOrDefault(x => x.Value == playerId).Key, playerId)))
+      return new PlayerPosition
+             {
+               PlayerId = playerId,
+               Position = new List<float>
+                          {
+                            0,
+                            0,
+                            0,
+                          },
+               Rotation = new List<float>
+                          {
+                            0,
+                            0,
+                            0,
+                            0,
+                          }
+             };
     
-    return _playerPositions[new KeyValuePair<Guid, Guid>(roomId, playerId)];
+    var roomId = _playerClients.Keys.FirstOrDefault(x => x.Value == playerId).Key;
+    
+    var position     = _playerPositions[new KeyValuePair<Guid, Guid>(roomId, playerId)].Key;
+    var positionList = new List<float> {position.X, position.Y, position.Z};
+    var rotation     = _playerPositions[new KeyValuePair<Guid, Guid>(roomId, playerId)].Value;
+    
+    return new PlayerPosition
+           {
+             PlayerId = playerId,
+             Position = positionList,
+             Rotation = new List<float>
+                        {
+                          rotation.X,
+                          rotation.Y,
+                          rotation.Z,
+                          rotation.W
+                        }
+           };
   }
 
   public void FinishPlayer(Guid playerId)
   {
     var roomId = _playerClients.Keys.FirstOrDefault(x => x.Value == playerId).Key;
 
+    Console.WriteLine($"[RoomManager] Player {playerId} finished in room {roomId}.");
+    
     _playerFinishStatuses[new KeyValuePair<Guid, Guid>(roomId, playerId)] =
       new KeyValuePair<DateTime, bool>(DateTime.Now, true);
   }
 
   public bool IsPlayerFinish(Guid playerId)
   {
-    // if not exist in _playerFinishStatuses return false
     if (!_playerFinishStatuses.ContainsKey(new KeyValuePair<Guid, Guid>(_playerClients.Keys.FirstOrDefault(x => x.Value == playerId).Key, playerId)))
       return false;
-    
+
     var roomId = _playerClients.Keys.FirstOrDefault(x => x.Value == playerId).Key;
 
     return _playerFinishStatuses[new KeyValuePair<Guid, Guid>(roomId, playerId)].Value;
@@ -227,11 +254,36 @@ public class RoomManager
   {
     var roomId = _playerClients.Keys.FirstOrDefault(x => x.Value == playerId).Key;
 
+    // if doesnt exist return default
+    if (!_playerFinishStatuses.ContainsKey(new KeyValuePair<Guid, Guid>(roomId, playerId)))
+      return DateTime.Now;
+    
     return _playerFinishStatuses[new KeyValuePair<Guid, Guid>(roomId, playerId)].Key;
   }
 
   public string GetPlayerName(Guid playerId)
   {
     return _playerNames.TryGetValue(playerId, out var name) ? name : "Unknown";
+  }
+
+  public Vector3  GetPlayerPositionToOrder(Guid playerId)
+  {
+    if (!_playerPositions.ContainsKey(new KeyValuePair<Guid, Guid>(_playerClients.Keys.FirstOrDefault(x => x.Value == playerId).Key, playerId)))
+    {
+      var roomId = _playerClients.Keys.FirstOrDefault(x => x.Value == playerId).Key;
+
+      var room = _rooms.FirstOrDefault(x => x.Id == roomId);
+
+      var player = room?.ActivePlayers?.FirstOrDefault(x => x.Id == playerId);
+
+      var order = room?.ActivePlayers?.IndexOf(player) ?? 0;
+
+      _playerPositions.Add(new KeyValuePair<Guid, Guid>(roomId, playerId),
+        new KeyValuePair<Vector3, Quaternion>(new Vector3(order * 2, 0, 0), Quaternion.Identity));
+      
+      return new Vector3(order * 2, 0, 0);
+    }
+    
+    return _playerPositions[new KeyValuePair<Guid, Guid>(_playerClients.Keys.FirstOrDefault(x => x.Value == playerId).Key, playerId)].Key;
   }
 }
