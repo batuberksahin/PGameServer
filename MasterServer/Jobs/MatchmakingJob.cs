@@ -35,7 +35,7 @@ public class MatchmakingJob : JobBase
       var gameServer = ManagerLocator.MatchmakingManager.GetGameServerByGuid(availableGameServerGuid);
 
       var gameServerTcpClient = new TcpClient();
-      await gameServerTcpClient.ConnectAsync(IPAddress.Parse("127.0.0.1"), gameServer.Port);
+      await gameServerTcpClient.ConnectAsync(IPAddress.Parse(LocalIP.GetLocalIPv4()), gameServer.Port);
 
       //var gameServerTcpClient = ManagerLocator.MatchmakingManager.GetGameServerTcpClient(availableGameServerGuid);
       await Messenger.SendResponseAsync(gameServerTcpClient, "server_new_room", new
@@ -51,7 +51,7 @@ public class MatchmakingJob : JobBase
       {
         await Messenger.SendResponseAsync(playerContainer.Value, "room_info", new
                                                                               {
-                                                                                GameServerAddress = "127.0.0.1",
+                                                                                GameServerAddress = NetworkLibrary.LocalIP.GetLocalIPv4(),
                                                                                 GameServerPort    = gameServerInfo.Port,
                                                                                 RoomId            = roomId
                                                                               });

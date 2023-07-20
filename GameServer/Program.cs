@@ -11,13 +11,21 @@ namespace GameServer;
 public static class GameServer
 {
   public const short MasterServerPort = 13312;
-  public const short Port             = 13313;
+  public static short Port;
 
   public static Guid ServerId { get; } = Guid.NewGuid();
 
   private static void Main(string[] args)
   {
     Console.Title = "Game Server";
+    
+    Console.Write("Enter the port number for the Game Server: ");
+    if (!short.TryParse(Console.ReadLine(), out Port))
+    {
+      Console.WriteLine("Invalid port number. Using default port 13313.");
+      
+      Port = 13313;
+    }
     
     ITcpServer server = new TcpServer(Port);
 
@@ -32,7 +40,7 @@ public static class GameServer
     var pingTcpClient = new TcpClient();
 
     var jobScheduler = new JobScheduler(TimeSpan.FromSeconds(0.3));
-    jobScheduler.RegisterTask(new PingJob(pingTcpClient, "127.0.0.1", MasterServerPort));
+    jobScheduler.RegisterTask(new PingJob(pingTcpClient, LocalIP.GetLocalIPv4(), MasterServerPort));
 
     jobScheduler.Start();
 
@@ -50,7 +58,7 @@ public static class GameServer
   private static async Task SendOpenRequestToMasterServer(TcpClient masterServerTcpClient)
   {
     if (!masterServerTcpClient.Connected)
-      await masterServerTcpClient.ConnectAsync("127.0.0.1", MasterServerPort);
+      await masterServerTcpClient.ConnectAsync(LocalIP.GetLocalIPv4(), MasterServerPort);
 
     // Create open request model
     var openRequest = new OpenRequest
