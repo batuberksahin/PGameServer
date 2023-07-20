@@ -18,4 +18,20 @@ public class PlayerRepository : RepositoryBase<Player>
   {
     return entity.Id;
   }
+
+  public async Task<int> GetScore(Guid playerId)
+  {
+    var player = await GetByGuidAsync(playerId);
+    
+    return player.Score;
+  }
+
+  protected async Task UpdateScore(Guid playerId, int score)
+  {
+    var player = await GetByGuidAsync(playerId);
+    
+    player.Score = score;
+    
+    await UpdateAsync(player);
+  }
 }

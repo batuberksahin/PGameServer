@@ -18,7 +18,8 @@ public class ConnectResponse
   public bool?   Success;
   public string? Message;
 
-  public Guid PlayerId;
+  public Guid                     PlayerId;
+  public Dictionary<string, int> Leaderboard;
 }
 
 public class PlayerConnectBehaviour : BehaviourBase<ConnectRequest, ConnectResponse>
@@ -60,7 +61,11 @@ public class PlayerConnectBehaviour : BehaviourBase<ConnectRequest, ConnectRespo
                      {
                        Success  = true,
                        Message  = "Connected successfully",
-                       PlayerId = playerId
+                       PlayerId = playerId,
+                        Leaderboard = (await _playerRepository.GetAllAsync())
+                                      .OrderByDescending(x => x.Score)
+                                      .Take(10)
+                                      .ToDictionary(x => x.Username, x => x.Score)
                      };
 
       return response;
