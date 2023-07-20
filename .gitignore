@@ -1,0 +1,84 @@
+# .NET and JetBrains Rider specific files
+*.userprefs
+*.sln.dotsettings
+*.suo
+*.csproj.user
+*.resharper
+_ReSharper.*
+*.Rider.user
+.idea/
+
+# Build output folders
+bin/
+obj/
+builds/
+
+# Visual Studio files
+*.vs/
+*.vssscc
+*_i.c
+*_p.c
+*_h.h
+*.ilk
+*.meta
+*.obj
+*.pch
+*.pdb
+*.tlog
+*.manifest
+*.log
+*.log.xml
+*.exe
+*.dll
+*.svclog
+*.vspscc
+*_wpftmp.cs
+*.sqlproj
+*.user
+*.dbmdl
+*.sqlproj.user
+*.cache
+*.sdf
+*.ipch/
+*.ncb
+*.VC.db
+*.VC.VC.opendb
+*.VC.VC.opendb.lock
+
+# NuGet Packages
+packages/
+*.nupkg
+*.pfx
+*.snk
+*.cer
+
+# MSTest Test Results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+
+# Exclude node_modules directory except the root "node_modules" folder.
+**/node_modules/
+!node_modules/
+
+# Unity specific files
+Temp/
+Library/
+ProjectSettings/ProjectVersion.txt
+ProjectSettings/UnitySettings.asset
+ProjectSettings/EditorBuildSettings.asset
+
+# macOS specific files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# Files that might appear on external disk
+.Spotlight-V100
+.Trashes
+
+# Directories used by macOS to restore application state
+.AppleDouble/
+.AppleDesktop/
