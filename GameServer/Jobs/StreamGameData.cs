@@ -254,14 +254,22 @@ public class StreamGameData : JobBase
 
   private async Task UpdateGameLogic()
   {
-    var playerPositions = GetPlayerPositions();
-
-    foreach (var client in _clients)
+    try
     {
-      Task.Run(() => Messenger.SendResponseAsync(client, "player_positions", playerPositions));
-    }
+      var playerPositions = GetPlayerPositions();
 
-    if (GameEndConditionMet()) await FinishGame();
+      foreach (var client in _clients)
+      {
+        Task.Run(() => Messenger.SendResponseAsync(client, "player_positions", playerPositions));
+      }
+
+      if (GameEndConditionMet()) await FinishGame();
+    }
+    catch (Exception e)
+    {
+      Console.Error.WriteLine(e);
+      throw;
+    }
   }
 
   private List<PlayerPosition> GetPlayerPositions()
@@ -295,10 +303,10 @@ public class StreamGameData : JobBase
   {
     Console.WriteLine($"{_room.Id} game finished");
 
-    var playersTime = new Dictionary<Guid, int>();
+    var playersTime = new Dictionary<string, int>();
 
     foreach (var player in _players)
-      playersTime[player.Id] = ManagerLocator.RoomManager.GetPlayerFinishTime(player.Id).Subtract(_startTime).Seconds;
+      playersTime[player.Username] = ManagerLocator.RoomManager.GetPlayerFinishTime(player.Id).Subtract(_startTime).Seconds;
 
     foreach (var client in _clients) await Messenger.SendResponseAsync(client, "game_results", playersTime);
 
@@ -307,10 +315,12 @@ public class StreamGameData : JobBase
     // second player will get 2 points and third player will get 1 point
     foreach (var player in _players)
     {
+      var playerId = player.Id;
+      
       var playerRank = playersTime.OrderBy(pair => pair.Value)
                                   .Select(pair => pair.Key)
                                   .ToList()
-                                  .IndexOf(player.Id) + 1;
+                                  .IndexOf(player.Username) + 1;
       
       var playerScore = player.Score;
 
@@ -318,18 +328,7 @@ public class StreamGameData : JobBase
      
       await _playersRepository.UpdateAsync(player);
     }
-    
-    
-    await _gameRecordsRepository.SaveAsync(new GameRecord
-                                           {
-                                             Id           = Guid.NewGuid(),
-                                             GameServerId = GameServer.ServerId,
-                                             RoomId       = _room.Id,
-                                             PlayerIdsOrderedByRank = playersTime.OrderBy(pair => pair.Value)
-                                                                                 .Select(pair => pair.Key)
-                                                                                 .ToList()
-                                           });
-    
+
     ManagerLocator.RoomManager.StopRoom(_room);
   }
 }

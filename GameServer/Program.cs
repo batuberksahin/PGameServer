@@ -10,8 +10,8 @@ namespace GameServer;
 
 public static class GameServer
 {
-  public const short MasterServerPort = 8888;
-  public const short Port             = 1310;
+  public const short MasterServerPort = 13312;
+  public const short Port             = 13313;
 
   public static Guid ServerId { get; } = Guid.NewGuid();
 

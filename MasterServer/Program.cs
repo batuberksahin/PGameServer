@@ -12,7 +12,7 @@ public static class MasterServer
   {
     Console.Title = "Master Server";
 
-    ITcpServer server = new TcpServer(8888);
+    ITcpServer server = new TcpServer(13312);
 
     // Player Behaviours
     server.RegisterBehaviour("player_connect",   new PlayerConnectBehaviour());
